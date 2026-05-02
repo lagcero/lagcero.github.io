@@ -21,8 +21,9 @@
     const params = new URLSearchParams(window.location.search);
     const chat = params.get("chat");
     const msg = params.get("msg");
+    const thread = params.get("thread");
 
-    const tgUrl = `tg://openmessage?chat_id=${encodeURIComponent(chat || "")}&message_id=${encodeURIComponent(msg || "")}`;
+    const tgUrl = `tg://privatepost?channel=${encodeURIComponent(chat || "")}&post=${encodeURIComponent(msg || "")}${thread ? `&thread=${encodeURIComponent(thread)}` : ""}&single`;
 
     const btn = document.getElementById("openBtn");
     const info = document.getElementById("info");
