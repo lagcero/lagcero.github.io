@@ -1,1 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Abrir Telegram</title>
+</head>
+<body style="font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 20px;">
+  <h1>Abrir mensaje de Telegram</h1>
+  <p>Pulsa el botón para intentar abrir Telegram.</p>
 
+  <p>
+    <a id="openBtn" href="#" style="display:inline-block;padding:12px 18px;background:#0a7cff;color:white;text-decoration:none;border-radius:8px;">
+      Abrir en Telegram
+    </a>
+  </p>
+
+  <p id="info" style="color:#555;"></p>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const chat = params.get("chat");
+    const msg = params.get("msg");
+
+    const tgUrl = `tg://openmessage?chat_id=${encodeURIComponent(chat || "")}&message_id=${encodeURIComponent(msg || "")}`;
+
+    const btn = document.getElementById("openBtn");
+    const info = document.getElementById("info");
+
+    if (!chat || !msg) {
+      info.textContent = "Faltan parámetros en la URL. Debe llevar ?chat=...&msg=...";
+    } else {
+      btn.href = tgUrl;
+      info.textContent = "Chat: " + chat + " | Mensaje: " + msg;
+    }
+  </script>
+</body>
+</html>
