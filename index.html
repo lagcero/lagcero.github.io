@@ -7,7 +7,7 @@
 </head>
 <body style="font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 20px;">
   <h1>Abrir mensaje de Telegram</h1>
-  <p>Pulsa el botón para intentar abrir Telegram.</p>
+  <p>Redirigiendo a la app de Telegram...</p>
 
   <p>
     <a id="openBtn" href="#" style="display:inline-block;padding:12px 18px;background:#0a7cff;color:white;text-decoration:none;border-radius:8px;">
@@ -19,11 +19,9 @@
 
   <script>
     const params = new URLSearchParams(window.location.search);
-    const chat = params.get("chat");
+    let chat = params.get("chat");
     const msg = params.get("msg");
     const thread = params.get("thread");
-
-    const tgUrl = `tg://privatepost?channel=${encodeURIComponent(chat || "")}&post=${encodeURIComponent(msg || "")}${thread ? `&thread=${encodeURIComponent(thread)}` : ""}&single`;
 
     const btn = document.getElementById("openBtn");
     const info = document.getElementById("info");
@@ -31,8 +29,29 @@
     if (!chat || !msg) {
       info.textContent = "Faltan parámetros en la URL. Debe llevar ?chat=...&msg=...";
     } else {
-      btn.href = tgUrl;
-      info.textContent = "Chat: " + chat + " | Mensaje: " + msg;
+      // Nos aseguramos de quitar cualquier prefijo -100 si lo tuviera, 
+      // porque los enlaces t.me/c/ usan el ID sin el -100
+      if (chat.startsWith("-100")) {
+        chat = chat.substring(4);
+      }
+
+      // Construimos el enlace estándar de mensaje privado en Telegram
+      // Formato: https://t.me/c/ChatID/TopicID/MessageID
+      const tMeUrl = thread 
+        ? `https://t.me/c/${chat}/${thread}/${msg}`
+        : `https://t.me/c/${chat}/${msg}`;
+
+      // En Android, podemos forzar que se abra en la app usando un intent
+      // fallbackUrl hará que si falla, intente abrir en el navegador
+      const intentUrl = `intent://${tMeUrl.replace('https://', '')}#Intent;package=org.telegram.messenger;scheme=https;end;`;
+
+      btn.href = intentUrl;
+      info.innerHTML = `Chat: ${chat} <br>Mensaje: ${msg} <br>Hilo: ${thread || 'Ninguno'}`;
+      
+      // Auto-redirección
+      setTimeout(() => {
+        window.location.href = intentUrl;
+      }, 500);
     }
   </script>
 </body>
