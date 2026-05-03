@@ -30,21 +30,19 @@
       info.textContent = "Faltan parámetros en la URL.";
     } else {
       // 1. Limpiamos el chatID para que no tenga el -100
+      // Los enlaces t.me/c/ NUNCA llevan el -100
       if (chat.startsWith("-100")) {
         chat = chat.substring(4);
       }
 
-      // 2. Construimos el enlace universal (URI universal de Telegram)
-      // tg://resolve?domain=c&post=MensajeID&channel=ChatID&thread=ThreadID
-      // Este formato lo pillan TODOS los clientes (oficiales y no oficiales)
-      let tgUrl = `tg://privatepost?channel=${chat}&post=${msg}`;
-      if (thread) {
-        tgUrl += `&thread=${thread}`;
-      }
+      // 2. Construimos el enlace web oficial
+      const tMeUrl = thread 
+        ? `https://t.me/c/${chat}/${thread}/${msg}`
+        : `https://t.me/c/${chat}/${msg}`;
 
-      // 3. Lo convertimos en un Intent de Android GENÉRICO (sin forzar org.telegram.messenger)
-      // Esto hace que salte el selector de apps de Android si tienes varias, o abra la única que tengas (Bgram/Plus)
-      const intentUrl = `intent://${tgUrl.replace('tg://', '')}#Intent;scheme=tg;end;`;
+      // 3. Intent universal de Android para atrapar URLs https://t.me
+      // Al no poner 'package', Android preguntará con qué app quieres abrir este enlace (Bgram, Plus, etc)
+      const intentUrl = `intent://${tMeUrl.replace('https://', '')}#Intent;scheme=https;end;`;
 
       btn.href = intentUrl;
       info.innerHTML = `Intentando abrir con cliente alternativo...`;
@@ -52,11 +50,6 @@
       // Intentamos abrirlo automáticamente
       setTimeout(() => {
         window.location.href = intentUrl;
-        
-        // Fallback por si el intent falla (a los 2 segundos prueba con el tg:// directo)
-        setTimeout(() => {
-            window.location.href = tgUrl;
-        }, 2000);
       }, 500);
     }
   </script>
