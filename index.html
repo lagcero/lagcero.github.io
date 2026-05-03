@@ -6,12 +6,12 @@
   <title>Abrir Telegram</title>
 </head>
 <body style="font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 20px;">
-  <h1>Abrir mensaje de Telegram</h1>
-  <p>Redirigiendo a tu aplicación de Telegram...</p>
+  <h1>Abriendo en Bgram / Telegram...</h1>
+  <p>Redirigiendo al reproductor...</p>
 
   <p>
     <a id="openBtn" href="#" style="display:inline-block;padding:12px 18px;background:#0a7cff;color:white;text-decoration:none;border-radius:8px;">
-      Abrir en la App
+      Forzar apertura
     </a>
   </p>
 
@@ -29,40 +29,30 @@
     if (!chat || !msg) {
       info.textContent = "Faltan parámetros en la URL.";
     } else {
-      // 1. Aseguramos el prefijo -100 para el ID interno
-      if (!chat.startsWith("-100")) {
-        chat = "-100" + chat;
+      // 1. Limpiamos el prefijo -100 si lo tuviera. 
+      // El comando openmessage usa el ID base (ej. 3836216417)
+      let baseChatId = chat;
+      if (baseChatId.startsWith("-100")) {
+        baseChatId = baseChatId.substring(4);
       }
 
-      // 2. Construimos un intent avanzado de Android que no usa URLs,
-      // sino que invoca directamente la acción ACTION_VIEW con el esquema interno 'tg'
-      // Esto le dice a la app de Telegram "abre este peer_id (chat) en este message_id"
-      
-      let tgUri = `tg://openmessage?chat_id=${chat.replace('-100', '')}&message_id=${msg}`;
-      
-      // Si usamos Bgram/Plus, a veces el esquema tg://privatepost funciona mejor si se formatea estrictamente
-      let fallbackUri = `tg://privatepost?channel=${chat.replace('-100', '')}&post=${msg}`;
-      if (thread) {
-        fallbackUri += `&thread=${thread}`;
-      }
+      // 2. Construimos el comando de bajo nivel tg://openmessage
+      // Formato: tg://openmessage?chat_id=CHATID&message_id=MESSAGEID
+      const tgOpenMessage = `tg://openmessage?chat_id=${baseChatId}&message_id=${msg}`;
 
-      // Creamos un Intent sin 'package' para que salte el selector de Android
-      // y usamos el esquema 'tg' que atrapan todas las apps clon de Telegram
-      const intentUrl = `intent://${fallbackUri.replace('tg://', '')}#Intent;scheme=tg;end;`;
+      // 3. Lo metemos en un Intent de Android para el esquema tg
+      const intentUrl = `intent://${tgOpenMessage.replace('tg://', '')}#Intent;scheme=tg;end;`;
 
       btn.href = intentUrl;
-      info.innerHTML = `Chat: ${chat} <br>Mensaje: ${msg}`;
+      info.innerHTML = `Chat: ${baseChatId} <br>Msg: ${msg} <br><br>Intentando comando interno de BD...`;
       
+      // Disparamos el intent principal
       setTimeout(() => {
-        // Intentar abrir el intent universal
         window.location.href = intentUrl;
         
-        // Si el intent falla, intentar con la URI directa t.me (que a veces Bgram pilla si la app ya está abierta en segundo plano)
+        // Fallback: Si el intent falla, intentamos una URI normal de Android para Bgram
         setTimeout(() => {
-          let tMeUrl = thread 
-            ? `https://t.me/c/${chat.replace('-100', '')}/${thread}/${msg}`
-            : `https://t.me/c/${chat.replace('-100', '')}/${msg}`;
-          window.location.href = tMeUrl;
+          window.location.href = tgOpenMessage;
         }, 1500);
       }, 500);
     }
