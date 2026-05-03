@@ -29,27 +29,41 @@
     if (!chat || !msg) {
       info.textContent = "Faltan parámetros en la URL.";
     } else {
-      // 1. Limpiamos el chatID para que no tenga el -100
-      // Los enlaces t.me/c/ NUNCA llevan el -100
-      if (chat.startsWith("-100")) {
-        chat = chat.substring(4);
+      // 1. Aseguramos el prefijo -100 para el ID interno
+      if (!chat.startsWith("-100")) {
+        chat = "-100" + chat;
       }
 
-      // 2. Construimos el enlace web oficial
-      const tMeUrl = thread 
-        ? `https://t.me/c/${chat}/${thread}/${msg}`
-        : `https://t.me/c/${chat}/${msg}`;
+      // 2. Construimos un intent avanzado de Android que no usa URLs,
+      // sino que invoca directamente la acción ACTION_VIEW con el esquema interno 'tg'
+      // Esto le dice a la app de Telegram "abre este peer_id (chat) en este message_id"
+      
+      let tgUri = `tg://openmessage?chat_id=${chat.replace('-100', '')}&message_id=${msg}`;
+      
+      // Si usamos Bgram/Plus, a veces el esquema tg://privatepost funciona mejor si se formatea estrictamente
+      let fallbackUri = `tg://privatepost?channel=${chat.replace('-100', '')}&post=${msg}`;
+      if (thread) {
+        fallbackUri += `&thread=${thread}`;
+      }
 
-      // 3. Intent universal de Android para atrapar URLs https://t.me
-      // Al no poner 'package', Android preguntará con qué app quieres abrir este enlace (Bgram, Plus, etc)
-      const intentUrl = `intent://${tMeUrl.replace('https://', '')}#Intent;scheme=https;end;`;
+      // Creamos un Intent sin 'package' para que salte el selector de Android
+      // y usamos el esquema 'tg' que atrapan todas las apps clon de Telegram
+      const intentUrl = `intent://${fallbackUri.replace('tg://', '')}#Intent;scheme=tg;end;`;
 
       btn.href = intentUrl;
-      info.innerHTML = `Intentando abrir con cliente alternativo...`;
+      info.innerHTML = `Chat: ${chat} <br>Mensaje: ${msg}`;
       
-      // Intentamos abrirlo automáticamente
       setTimeout(() => {
+        // Intentar abrir el intent universal
         window.location.href = intentUrl;
+        
+        // Si el intent falla, intentar con la URI directa t.me (que a veces Bgram pilla si la app ya está abierta en segundo plano)
+        setTimeout(() => {
+          let tMeUrl = thread 
+            ? `https://t.me/c/${chat.replace('-100', '')}/${thread}/${msg}`
+            : `https://t.me/c/${chat.replace('-100', '')}/${msg}`;
+          window.location.href = tMeUrl;
+        }, 1500);
       }, 500);
     }
   </script>
